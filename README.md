@@ -1,124 +1,163 @@
-# Fase 1 — CFG vs Lenguaje Natural (mini-C parser + NLP)
+# Parser LL(1) — Fase 1 (Mini‑C, includes estrictos + `int main()`)
 
-Este proyecto compara un **parser descendente** (mini-C) con una **demo NLP** (spaCy) para evidenciar por qué el **lenguaje natural** excede la expresividad de una **CFG** simple.
+Este repo implementa **solo** el analizador **LL(1) table‑driven** para un mini subconjunto de C.
+Incluye:
+- Una gramática LL(1) que exige un **léxico** y una **sintaxis** básicos del lenguaje C.
+- Un *runner* `run_demo.py` para **recorrer una carpeta** (`test_to_parse/`) y reportar **ACEPTADO/RECHAZADO** por archivo.
+
+---
+
+## Estructura sugerida
+```
+minic/
+  __init__.py        # exporta parse_ll1 y ParseError
+  lexer.py           # analizador léxico (includes estrictos)
+  ll1_table.py       # reconocedor LL(1) (tabla de predicción + pila)
+
+test_to_parse/
+  valido1.c
+  valido2.txt
+  invalido1.c
+  invalido2.txt
+
+run_demo.py          # CLI: recorre carpeta y reporta aceptados/rechazados
+README.md
+requirements.txt
+```
+
+---
 
 ## Requisitos
 - Python **3.12**
-- Entorno virtual local (`.venv` recomendado)
-- (Opcional) Modelo spaCy en español: `es_core_news_sm`
+- Entorno virtual `.venv` (recomendado)
+- Paquetes: typer y rich para mostrar resultados de la demo.
 
-## Estructura
-```
-fase1/
-  README.md
-  requirements.txt
-  pytest.ini
-  minic/
-    __init__.py
-    lexer.py
-    parser.py
-  demo_formal.py
-  demo_natural.py
-  nlp_demo/
-    spacy_demo.py
-  tests/
-    conftest.py
-    test_parser_valid.py
-    test_parser_invalid.py
-  informe/
-    informe.md
-  slides/
-    slides.md
-```
+### Instalación rápida
 
-## Instalación
-
-### Windows (PowerShell)
+#### Windows (PowerShell)
 ```pwsh
-# 1) Crear venv
 python -m venv .\.venv
-
-# 2) Activar venv
 .\.venv\Scripts\Activate.ps1
-
-# 3) Instalar dependencias
 python -m pip install -r .\requirements.txt
-
-# 4) (Opcional) Descargar modelo spaCy en español
-python -m spacy download es_core_news_sm
 ```
 
-### Linux / Mac (bash)
+#### Linux / Mac (bash)
 ```bash
-# 1) Crear venv
 python3 -m venv .venv
-
-# 2) Activar venv
 source .venv/bin/activate
-
-# 3) Instalar dependencias
 python -m pip install -r requirements.txt
-
-# 4) (Opcional) Descargar modelo spaCy en español
-python -m spacy download es_core_news_sm
 ```
 
-## Demos
-> Ejecuta desde la **raíz del proyecto**, con el venv **activado**.
+> Si copiaste un `.venv` desde otra ubicación y algo quedó apuntando a rutas viejas:
+> ```pwsh
+> deactivate
+> python -m venv .venv --upgrade
+> ```
+
+---
+
+## Cómo ejecutar el recorrido de carpeta
+
+### 1) Carpeta por defecto `test_to_parse/`
 ```bash
-# 1) Código mini-C válido: debe parsear OK
-python demo_formal.py
-
-# 2) Oración natural: debe FALLAR (ParseError o similar)
-python demo_natural.py
-
-# 3) Demo NLP (si instalaste es_core_news_sm)
-python nlp_demo/spacy_demo.py
+python run_demo.py
 ```
+
+### 2) Carpeta personalizada
+```bash
+python run_demo.py .\mis_programas
+# o
+python run_demo.py ./samples
+```
+
 **Salida esperada (ejemplo):**
-- `demo_formal.py` → `Parse formal exitoso` y un AST
-- `demo_natural.py` → `Fallo esperado con lenguaje natural: Esperaba EQ, …`
-- `spacy_demo.py` → tabla de `Tokens / PoS / Dep / Head`
+```
+╭────────────── LL(1) Runner ──────────────╮
+│ Analizando 4 archivo(s) en test_to_parse │
+│ Extensiones: .c, .txt                    │
+╰──────────────────────────────────────────╯
+Procesando... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 
-## Pruebas (PyTest)
-> Recomendado: correr como **módulo** para evitar launchers antiguos.
-```bash
-# Ejecutar todo
-python -m pytest
+                                                                    Resultados                                                                    
+┏━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃   # ┃ Archivo                     ┃  Estado   ┃ Detalle                                                                                        ┃
+┡━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│   1 │ test_to_parse\invalido1.c   │ RECHAZADO │ Carácter inesperado '#' en 1:1                                                                 │
+│   2 │ test_to_parse\invalido2.txt │ RECHAZADO │ No hay producción para Program con lookahead ID ('Juan') en 1:1. Esperaba uno de: INT, PREPROC │
+│   3 │ test_to_parse\valido1.c     │ ACEPTADO  │ -                                                                                              │
+│   4 │ test_to_parse\valido2.txt   │ ACEPTADO  │ -                                                                                              │
+└─────┴─────────────────────────────┴───────────┴────────────────────────────────────────────────────────────────────────────────────────────────┘
+╭──────────── Resumen ─────────────╮
+│ Aceptados: 2/4   Rechazados: 2/4 │
+╰──────────────────────────────────╯
 ```
 
-### Ejecutar pruebas específicas
-```bash
-python -m pytest tests/test_parser_valid.py -vv
-python -m pytest tests/test_parser_invalid.py -vv
+> El *runner* considera **RECHAZADO** tanto los errores sintácticos (**ParseError**) como los léxicos (**LexerError**), p. ej. `#include` inválido.
+
+---
+
+## Gramática (resumen LL(1) actual)
+**Extensiones clave:**
+- `Program     -> PreprocList MainDef`
+- `PreprocList -> PREPROC PreprocList | ε`  *(donde `PREPROC` es una línea `#include …` válida)*
+- `MainDef     -> INT MAIN LP RP Block` *(exige `int main()` y un bloque)*
+- `ReturnStmt  -> RETURN NUM SC`
+
+**Resto (simplificado):**
+```
+StmtList -> Stmt StmtList | ε
+Stmt     -> Decl SC | Assign SC | ReturnStmt | IfStmt | WhileStmt | ForStmt | Block
+Block    -> LB StmtList RB
+
+Decl     -> (INT | TYPE) ID
+Assign   -> ID EQ Expr
+
+IfStmt   -> IF LP Bool RP Stmt ElseOpt
+ElseOpt  -> ELSE Stmt | ε
+WhileStmt-> WHILE LP Bool RP Stmt
+ForStmt  -> FOR LP ForInit SC ForCond SC ForStep RP Stmt
+ForInit  -> Decl | Assign | ε
+ForCond  -> Bool | ε
+ForStep  -> Assign | ε
+
+Bool     -> Expr RelP
+RelP     -> (LT|LE|GT|GE|EQEQ|NEQ) Expr | ε
+
+Expr     -> Term ExprP
+ExprP    -> PLUS Term ExprP | MIN Term ExprP | ε
+Term     -> Factor TermP
+TermP    -> MUL Factor TermP | DIV Factor TermP | ε
+Factor   -> ID | NUM | LP Expr RP
 ```
 
-### Colección de tests (sin ejecutar)
-```bash
-python -m pytest --collect-only -q
-```
+**Terminales principales:**
+`PREPROC, INT, TYPE, MAIN, RETURN, ID, NUM, EQ, PLUS, MIN, MUL, DIV, LP, RP, LB, RB, SC, IF, ELSE, WHILE, FOR, LT, LE, GT, GE, EQEQ, NEQ, $`
 
-### Re-ejecutar solo fallos previos
-```bash
-python -m pytest --lf -vv
-```
+---
 
-## Ejemplos de entradas
-
-**Válidas (mini-C)**
+## Ejemplo válido mínimo
 ```c
-int x;
-x = 3 + 5 * (2 + 1);
-float y;
-y = x / 2;
+#include <stdio.h>
+
+int main() {
+    int x;
+    x = 0 + 1 * (2 + 3);
+    return 0;
+}
 ```
 
-**Inválidas (deben lanzar ParseError)**
+## Ejemplos rechazados (estrictos)
 ```c
-int ;
-x = + 2;
-float x x;
-(x + 1;
-1x = 2;
+#include stdio.h
+#include
+int main {
+    int ;
+    return
+}
 ```
 
+---
+
+## Solución de problemas
+- **ModuleNotFoundError: minic** → Ejecuta desde la **raíz** del repo o agrega la raíz al `PYTHONPATH` temporalmente.
+- **Copiaste el `.venv`** → repara rutas con `python -m venv .venv --upgrade`.

@@ -1,0 +1,8 @@
+#include <stdio.h>
+#include "otro.h"
+
+int main() {
+    int x;
+    x = 0 + 1 * (2 + 3);
+    return 0;
+}

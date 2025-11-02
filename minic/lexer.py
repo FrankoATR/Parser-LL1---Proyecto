@@ -14,28 +14,28 @@ class LexerError(Exception):
 
 class Lexer:
     TOKEN_SPECS: List[Tuple[str, str]] = [
-        # --- Preprocesador (#include ...) -> consumir la línea completa ---
         ("PREPROC", r"\#include\s*(<[^>\r\n]+>|\"[^\"\r\n]+\")"),
 
-        # --- Palabras clave específicas para main/retorno ---
         ("INT",    r"\bint\b"),
         ("MAIN",   r"\bmain\b"),
         ("RETURN", r"\breturn\b"),
 
-        # --- Palabras clave de control (si ya las usabas) ---
         ("IF",     r"\bif\b"),
         ("ELSE",   r"\belse\b"),
         ("WHILE",  r"\bwhile\b"),
         ("FOR",    r"\bfor\b"),
 
-        # --- Tipos restantes (dejamos int separado) ---
-        ("TYPE",   r"\b(?:float|char)\b"),
+        ("CHAR",   r"\bchar\b"),
+        ("TYPE",   r"\bfloat\b"),
 
-        # --- Identificadores y números ---
+        ("PRINTF", r"\bprintf\b"),
+
+        ("STR",    r"\"([^\"\\]|\\.)*\""),
+        ("CHR",    r"'([^'\\]|\\.)'"),
+
         ("ID",    r"[a-zA-Z_][a-zA-Z_0-9]*"),
         ("NUM",   r"\d+(?:\.\d+)?"),
 
-        # --- Operadores relacionales (dobles primero) ---
         ("LE",    r"<="),
         ("GE",    r">="),
         ("EQEQ",  r"=="),
@@ -43,28 +43,27 @@ class Lexer:
         ("LT",    r"<"),
         ("GT",    r">"),
 
-        # --- Asignación y aritméticos ---
         ("EQ",    r"="),
         ("PLUS",  r"\+"),
         ("MIN",   r"-"),
         ("MUL",   r"\*"),
+
         ("DIV",   r"/"),
 
-        # --- Paréntesis y llaves ---
         ("LP",    r"\("),
         ("RP",    r"\)"),
         ("LB",    r"\{"),
         ("RB",    r"\}"),
+        ("LSB",   r"\["),
+        ("RSB",   r"\]"),
+        ("COMMA", r","),
 
-        # --- Puntuación / separadores ---
         ("SC",    r";"),
 
-        # --- Ruido que ignoramos ---
-        ("PUNCT",   r"[.,!?]+"),
+        ("PUNCT",   r"[.!?]+"),
         ("WS",      r"[ \t]+"),
         ("NEWLINE", r"\r?\n"),
 
-        # --- Cualquier otro carácter ---
         ("MISMATCH", r"."),
     ]
     MASTER = re.compile("|".join(f"(?P<{n}>{p})" for n, p in TOKEN_SPECS))
@@ -79,22 +78,18 @@ class Lexer:
             kind = mo.lastgroup
             text = mo.group()
 
-            # Ignorar espacios y puntuación suelta (.,!?)
             if kind in ("WS", "PUNCT"):
                 col += len(text)
                 continue
 
-            # Manejo de nueva línea
             if kind == "NEWLINE":
                 line += 1
                 col = 1
                 continue
 
-            # Error léxico
             if kind == "MISMATCH":
                 raise LexerError(f"Carácter inesperado {text!r} en {line}:{col}")
 
-            # Emitimos token normal (incluye PREPROC como línea entera)
             yield Token(kind, text, line, col)
             col += len(text)
 

@@ -17,8 +17,10 @@ minic/
 test_to_parse/
   valido1.c
   valido2.txt
+  invalido3.c
   invalido1.c
   invalido2.txt
+  invalido3.c
 
 run_demo.py          # CLI: recorre carpeta y reporta aceptados/rechazados
 README.md
@@ -98,40 +100,60 @@ Procesando... ━━━━━━━━━━━━━━━━━━━━━━
 
 ## Gramática (resumen LL(1) actual)
 **Extensiones clave:**
-- `Program     -> PreprocList MainDef`
-- `PreprocList -> PREPROC PreprocList | ε`  *(donde `PREPROC` es una línea `#include …` válida)*
-- `MainDef     -> INT MAIN LP RP Block` *(exige `int main()` y un bloque)*
-- `ReturnStmt  -> RETURN NUM SC`
+- `Program -> PreprocList MainDef`
+- `PreprocList -> PREPROC PreprocList | ε (donde PREPROC es una línea #include … válida)`
+- `MainDef -> INT MAIN LP RP Block (exige int main() y un bloque)`
+- `ReturnStmt -> RETURN NUM SC`
+- `Soporte de char y “strings” en C: char *id = "..." y char id[] = "..."`
+- `printf("fmt", args...) con argumentos Expr | STR | CHR`
 
 **Resto (simplificado):**
 ```
-StmtList -> Stmt StmtList | ε
-Stmt     -> Decl SC | Assign SC | ReturnStmt | IfStmt | WhileStmt | ForStmt | Block
-Block    -> LB StmtList RB
+StmtList   -> Stmt StmtList | ε
+Stmt       -> Decl SC | Assign SC | ReturnStmt | IfStmt | WhileStmt | ForStmt | PrintfStmt SC | Block
+Block      -> LB StmtList RB
 
-Decl     -> (INT | TYPE) ID
-Assign   -> ID EQ Expr
+Decl       -> IntDecl | FloatDecl | CharDecl
+IntDecl    -> INT ID DeclInitNumOpt
+FloatDecl  -> TYPE ID DeclInitNumOpt
+DeclInitNumOpt -> EQ Expr | ε
 
-IfStmt   -> IF LP Bool RP Stmt ElseOpt
-ElseOpt  -> ELSE Stmt | ε
-WhileStmt-> WHILE LP Bool RP Stmt
-ForStmt  -> FOR LP ForInit SC ForCond SC ForStep RP Stmt
-ForInit  -> Decl | Assign | ε
-ForCond  -> Bool | ε
-ForStep  -> Assign | ε
+CharDecl   -> CHAR CharDeclRest
+CharDeclRest     -> MUL ID CharStrInitOpt        | ID CharRestAfterId
+CharStrInitOpt   -> EQ STR | ε
+CharRestAfterId  -> LSB RSB CharStrInitOpt | CharChrInitOpt | ε
+CharChrInitOpt   -> EQ CHR | ε
 
-Bool     -> Expr RelP
-RelP     -> (LT|LE|GT|GE|EQEQ|NEQ) Expr | ε
+Assign     -> ID EQ AssignRValue
+AssignRValue -> Expr | STR | CHR
 
-Expr     -> Term ExprP
-ExprP    -> PLUS Term ExprP | MIN Term ExprP | ε
-Term     -> Factor TermP
-TermP    -> MUL Factor TermP | DIV Factor TermP | ε
-Factor   -> ID | NUM | LP Expr RP
+PrintfStmt -> PRINTF LP PrintfArgs RP
+PrintfArgs -> STR PrintfTail
+PrintfTail -> COMMA PrintfExprList | ε
+PrintfExprList  -> PrintfExpr PrintfExprListP
+PrintfExprListP -> COMMA PrintfExpr PrintfExprListP | ε
+PrintfExpr      -> Expr | STR | CHR
+
+IfStmt    -> IF LP Bool RP Stmt ElseOpt
+ElseOpt   -> ELSE Stmt | ε
+WhileStmt -> WHILE LP Bool RP Stmt
+ForStmt   -> FOR LP ForInit SC ForCond SC ForStep RP Stmt
+ForInit   -> Decl | Assign | ε
+ForCond   -> Bool | ε
+ForStep   -> Assign | ε
+
+Bool      -> Expr RelP
+RelP      -> (LT|LE|GT|GE|EQEQ|NEQ) Expr | ε
+
+Expr      -> Term ExprP
+ExprP     -> PLUS Term ExprP | MIN Term ExprP | ε
+Term      -> Factor TermP
+TermP     -> MUL Factor TermP | DIV Factor TermP | ε
+Factor    -> ID | NUM | LP Expr RP
 ```
 
 **Terminales principales:**
-`PREPROC, INT, TYPE, MAIN, RETURN, ID, NUM, EQ, PLUS, MIN, MUL, DIV, LP, RP, LB, RB, SC, IF, ELSE, WHILE, FOR, LT, LE, GT, GE, EQEQ, NEQ, $`
+`PREPROC, INT, TYPE, CHAR, MAIN, RETURN, PRINTF, ID, NUM, STR, CHR, EQ, PLUS, MIN, MUL, DIV, LP, RP, LB, RB, LSB, RSB, SC, COMMA, IF, ELSE, WHILE, FOR, LT, LE, GT, GE, EQEQ, NEQ, $`
 
 ---
 

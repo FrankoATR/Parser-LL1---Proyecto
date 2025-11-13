@@ -577,29 +577,3 @@ int main() {
     return x;   // Error: solo se permite RETURN NUM;
 }
 ```
-
----
-
-## Relación con el proyecto TLP02-2025 (Fase 1)
-
-Este parser constituye la parte de **“lenguaje formal”** del proyecto:
-
-- Se ha especificado una **CFG LL(1)** para un subconjunto de C.
-- El analizador demuestra cómo un lenguaje de programación puede
-  modelarse con una gramática bien definida y un parser determinista.
-- En la comparación con NLP (spaCy, etc.), este componente sirve como
-  contraparte “clásica” frente a los modelos estadísticos o de *deep learning*.
-
-Para la fase de experimentación con lenguaje natural, se puede reutilizar
-la infraestructura de pruebas (`run_demo.py`) y mostrar cómo el mismo enfoque
-LL(1) **no es suficiente** para frases ambiguas o estructuras más ricas del español
-o del inglés.
-
----
-
-Si quieres extender el subconjunto de C (por ejemplo, permitir `return expr;`,
-más operadores lógicos, funciones adicionales, etc.) bastará con:
-
-1. Ajustar el **léxico** en `lexer.py`.
-2. Actualizar las producciones y la **tabla LL(1)** en `ll1_table.py`.
-3. Añadir nuevos casos de prueba en `test_to_parse/`.
